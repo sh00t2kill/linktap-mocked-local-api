@@ -1,0 +1,104 @@
+<?php
+
+
+$post_json_data = file_get_contents('php://input');
+
+
+$data = json_decode($post_json_data, true);
+
+$gw_id = "BB54B60C004B12BB";
+$taps = ["1234567890","0987654321"];
+$names = ['Fake/Tap 1', 'Fake-Tap Süden 2'];
+
+if (!array_key_exists('gw_id', $data)) {
+$return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'ret' => 3
+       ];
+   echo json_encode($return_data);
+   exit;
+ }
+
+
+$dev_id = $data['dev_id'];
+$dev_status = file_get_contents($dev_id . ".state");
+$duration = intval(file_get_contents($dev_id . ".duration"));
+$pause_status = file_get_contents($dev_id . ".pause");
+
+$return_data = [];
+switch($data['cmd']) {
+   case 6:
+       file_put_contents($dev_id . ".state", "1");
+       file_put_contents($dev_id . ".duration", $data['duration']);
+       $return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'ret' => 0
+       ];
+       break;
+   case 7:
+       file_put_contents($dev_id . ".state", "0");
+       $return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'ret' => 0
+       ];
+       break;
+   case 3:
+       $return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'plan_mode' => 0,
+           'plan_sn' => 0,
+           'is_rf_linked' => true,
+           'is_fall' => false,
+           'is_broken' => false,
+           'is_cutoff' => false,
+           'is_leak' => false,
+           'is_clog' => false,
+           'signal' => 69,
+           'battery' => 44,
+           'is_manual_mode' => true,
+           'is_watering' => $dev_status == "1",//false,
+           'total_duration' => 0,
+           'remain_duration' => $duration,
+           'speed' => 0,
+           'volume' => 0,
+           'volume_limit' => 0,
+           'failsafe_duration' => 0,
+           'is_paused' => $pause_status != "0",
+           'ret' => 0
+       ];
+       break;
+   case 16:
+       $return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'vol_unit' => "L",
+           'end_dev' => $taps,
+           'dev_name' => $names,
+           'ret' => 0
+           ];
+        break;
+   case 18:
+       $duration = $data['duration'];
+       #$paused = 1;
+       #if ($duration == 0) {
+       #    $paused = 0;
+       #}
+       #file_put_contents($dev_id . ".pause", $paused);
+       file_put_contents($dev_id . ".pause", $duration);
+       $return_data = [
+           'cmd' => $data['cmd'],
+           'gw_id' => $gw_id,
+           'ret' => 0
+           ];
+       break;
+
+}
+
+echo json_encode($return_data);
+
+
+?>
